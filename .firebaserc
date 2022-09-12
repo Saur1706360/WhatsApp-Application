@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "dev1ps",
+    "dev1ps": "dev1ps"
+  },
+  "targets": {}
+}
