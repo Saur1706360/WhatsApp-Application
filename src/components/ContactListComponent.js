@@ -1,8 +1,9 @@
 import styled from "styled-components";
-import { contactList } from "../mockData";
 import { MdOutlineMessage } from "react-icons/md";
 import {AiOutlinePlus} from "react-icons/ai";
 import {BsThreeDots} from "react-icons/bs";
+import { useState ,useEffect } from "react";
+import http from "./httpService";
 
 const Container = styled.div`
   display:flex;
@@ -132,6 +133,18 @@ const ContactComponent = (props)=>{
 }
 
 const ContactListComponent = (props)=>{
+
+    const [contactList, setContactList] = useState([]);
+
+    const getData = async () => {
+        const { data } = await http.get(`https://my-whatsapp-server-1.herokuapp.com/svr/contactlist`);
+        setContactList(data);
+      };
+
+    useEffect(() => {
+        getData();
+    }, []);
+
  return <Container>
     <ProfileInfoDiv>
         <ProfileImage src="https://img.freepik.com/free-photo/close-up-young-successful-man-smiling-camera-standing-casual-outfit-against-blue-background_1258-66609.jpg?w=2000"/>
@@ -147,7 +160,7 @@ const ContactListComponent = (props)=>{
             <SearchInput placeholder="Search or new chat start"/>
          </SearchContainer>
     </SearchBox>
-    {contactList.map((userData)=><ContactComponent userData = {userData} setChat = {props.setChat}/>)}
+    {contactList.map((userData,index)=><ContactComponent userData = {userData} setChat = {props.setChat} key={index}/>)}
  </Container>;
 }
 export default ContactListComponent;

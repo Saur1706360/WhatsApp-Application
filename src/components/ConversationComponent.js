@@ -1,8 +1,7 @@
 import styled from "styled-components";
 import { SearchContainer, SearchInput } from "./ContactListComponent";
 import Picker from "emoji-picker-react";
-import { messagesList } from "../mockData";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import {AiOutlineCheck} from "react-icons/ai";
 import http from "./httpService";
 
@@ -56,26 +55,53 @@ const EmojiImage = styled.img`
 `
 
 const MessageContainer = styled.div`
-   display:flex;
-   flex-direction:column;
+   padding:20px;
    height:100%;
    background:#e5ddd6;
-   overflow-y:auto;
-
+   display:flex;
+   flex-direction:column;
+   overflow-y:scroll;
 `
 const MessageDiv = styled.div`
     justify-content:${props=>props.isYours?"flex-end" : "flex-start"};
     display:flex;
-    margin: 5px 15px;
+    margin: 10px 15px;
+    margin-right:80px;
+    margin-left:80px;
+    margin-top: auto !important;
 `
 
 const Message = styled.div`
      background:${props=>props.isYours?"#daf8cb" : "white"};
+     min-width:15%;
      max-width:50%;
      color:#303030;
      padding:8px 10px;
      font-size:14px;
-     border-radius:5px;
+     border-radius:${props=>props.isYours?"15px 0 15px 15px" : "0 15px 15px 15px"};
+     position: relative;
+
+     &:before {
+      content: '';
+      position: absolute;
+      visibility: visible;
+      top: 0px;
+      left: -10px;
+      border: 10px solid transparent;
+      border-top:${props=>props.isYours ? "" : "10px solid white"};
+   }
+
+     &:after {
+      content: '';
+      position: absolute;
+      visibility: visible;
+      top: 0px;
+      right: -9px;
+      border: 10px solid transparent;
+      border-top:${props=>props.isYours ? "10px solid #daf8cb" : ""};
+      clear: both;
+  }
+    
 `
 const MessageStatus = styled.div`
      display:flex;
@@ -121,47 +147,37 @@ const ConversationComponent = (props)=>{
     const {selectedChat} = props;
     const [text,setText] = useState("");
     const [pickerVisible,togglePicker] = useState(false);
-    const [messageList,setMessageList] = useState(messagesList);
+    const [messageList,setMessageList] = useState([]);
+    
     const onEmojiClick = (event,emojiObj)=>{
       setText(text+emojiObj.emoji);
       togglePicker(false);
-  }
+    }
+
+    const getData = async () => {
+      const { data } = await http.get(`https://my-whatsapp-server-1.herokuapp.com/svr/messagelist`);
+      console.log(data);
+      setMessageList(data);
+    };
+
+    useEffect(() => {
+        getData();
+    }, []);
+
+
     const onEnterPress = async(event)=>{
-      const time = getTime();
       if(event.key === "Enter"){
-         const messages = [...messageList];
-       if(selectedChat.id === 5){
-        let response = await http.post("https://mywhatsapp-server-2.herokuapp.com/svr/getData",{url:`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${text}?unitGroup=metric&include=current&key=DHQ8X23YQARDENJ3M6V89PQRJ&contentType=json`});
-        console.log(response);
-        let {data} = response;
-        let {address,currentConditions} = data;
-        let {humidity="",temp="",windspeed="",conditions=""} = currentConditions;
-        let str = `Location : ${address} , Temperature : ${temp} , Humidity : ${humidity} , WindSpeed : ${windspeed} , Conditions : ${conditions}`
-          messages.push({
-            id: selectedChat.id,
-            messageType: "TEXT",
-            text:text,
-            senderID: 0,
-            addedOn: time,
-          });
-          messages.push({
-            id: selectedChat.id,
-            messageType: "TEXT",
-            text:str,
-            senderID: 1,
-            addedOn: time,
-          });
-      }
-      else{
-        messages.push({
+        const time = getTime();
+        let response = await http.post("https://my-whatsapp-server-1.herokuapp.com/svr/postMessage",{
           id: selectedChat.id,
           messageType: "TEXT",
           text:text,
           senderID: 0,
           addedOn: time,
         });
-      }
-       setMessageList(messages);
+        let {data} = response;
+        console.log(data);
+        setMessageList(data);
        setText("");
       }
     }
@@ -171,40 +187,17 @@ const ConversationComponent = (props)=>{
       return str;
     }
     const handleSend = async()=>{
-      const messages = [...messageList];
       const time = getTime();
-      if(selectedChat.id === 5){
-        let response = await http.post("https://mywhatsapp-server-2.herokuapp.com/svr/getData",{url:`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${text}?unitGroup=metric&include=current&key=DHQ8X23YQARDENJ3M6V89PQRJ&contentType=json`});
-        console.log(response);
-        let {data} = response;
-        let {address,currentConditions} = data;
-        let {humidity="",temp="",windspeed="",conditions=""} = currentConditions;
-        let str = `Location : ${address} , Temperature : ${temp} , Humidity : ${humidity} , WindSpeed : ${windspeed} , Conditions : ${conditions}`
-          messages.push({
-            id: selectedChat.id,
-            messageType: "TEXT",
-            text:text,
-            senderID: 0,
-            addedOn: time,
-          });
-          messages.push({
-            id: selectedChat.id,
-            messageType: "TEXT",
-            text:str,
-            senderID: 1,
-            addedOn: time,
-          });
-      }
-      else{
-        messages.push({
+        let response = await http.post("https://my-whatsapp-server-1.herokuapp.com/svr/postMessage",{
           id: selectedChat.id,
           messageType: "TEXT",
           text:text,
           senderID: 0,
           addedOn: time,
         });
-      }
-       setMessageList(messages);
+        let {data} = response;
+        console.log(data);
+        setMessageList(data);
        setText("");
     }
     return <Container>
@@ -216,8 +209,9 @@ const ConversationComponent = (props)=>{
             </ProfileDetails>
           </ProfileHeader>
         <MessageContainer>
-            {messageList.map((messageData)=>
-              messageData.id ===selectedChat.id && <MessageDiv isYours = {messageData.senderID === 0}>
+            {
+            messageList.map((messageData,index)=>
+              messageData.id === selectedChat.id &&<MessageDiv isYours = {messageData.senderID === 0} key={index}>
                     <Message isYours = {messageData.senderID === 0}>
                         {messageData.text}<br/>
                         <MessageStatus>
@@ -226,7 +220,9 @@ const ConversationComponent = (props)=>{
                         </MessageStatus>
                     </Message>
                 </MessageDiv>
-            )}
+                
+              )          
+            }
         </MessageContainer>
         <ChatBox>
            <SearchContainer>
